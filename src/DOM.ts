@@ -12,6 +12,10 @@ const getUniqueId = (id: string = "") => {
   return `${id}_${idCounter++}`;
 };
 
+const getRandomArrayEl = <K>(array: K[]): K => {
+  return array[Math.floor(Math.random() * array.length)];
+};
+
 /**
  * Simplify the use of the DOM-Api.
  * @param tag Element tag name
@@ -44,4 +48,4 @@ const createElement = <K extends keyof HTMLElementTagNameMap>(
   return el;
 };
 
-export { createElement, body, getUniqueId };
+export { createElement, body, getUniqueId, getRandomArrayEl };

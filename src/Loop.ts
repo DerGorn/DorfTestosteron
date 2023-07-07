@@ -2,7 +2,7 @@ import EventBUS from "./EventBUS.js";
 
 const FPSTARGET = 30;
 
-let end = false;
+let end = true;
 let lastRender = 0;
 /**
  * Main loop to continously update the application. It uses window.requestAnimationFrame to

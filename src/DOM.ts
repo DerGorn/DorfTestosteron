@@ -16,6 +16,12 @@ const getRandomArrayEl = <K>(array: K[]): K => {
   return array[Math.floor(Math.random() * array.length)];
 };
 
+const veryDirtyFactorial = (n: number): number => {
+  return Array(n)
+    .fill(0)
+    .reduce((fac, _, i) => fac * (i + 1), 1);
+};
+
 /**
  * Simplify the use of the DOM-Api.
  * @param tag Element tag name
@@ -48,4 +54,10 @@ const createElement = <K extends keyof HTMLElementTagNameMap>(
   return el;
 };
 
-export { createElement, body, getUniqueId, getRandomArrayEl };
+export {
+  createElement,
+  body,
+  getUniqueId,
+  getRandomArrayEl,
+  veryDirtyFactorial,
+};

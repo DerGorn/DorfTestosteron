@@ -1,4 +1,4 @@
-import { getRandomArrayEl } from "./DOM.js";
+import { getRandomArrayEl, getUniqueId, veryDirtyFactorial } from "./DOM.js";
 
 type Neighbour = Tile | null;
 const Directions = ["N", "NO", "SO", "S", "SW", "NW"] as const;
@@ -47,10 +47,31 @@ class DirectionManager<T> {
       return { direction, data: this[direction] as T };
     });
   }
+
+  rotate(clockwise = true) {
+    const temp = this.N;
+    if (clockwise) {
+      this.N = this.NW;
+      this.NW = this.SW;
+      this.SW = this.S;
+      this.S = this.SO;
+      this.SO = this.NO;
+      this.NO = temp;
+    } else {
+      this.N = this.NO;
+      this.NO = this.SO;
+      this.SO = this.S;
+      this.S = this.SW;
+      this.SW = this.NW;
+      this.NW = temp;
+    }
+  }
 }
 
 type Neighbours = DirectionManager<Neighbour>;
 type Edges = DirectionManager<Terrains>;
+
+const straightProbability = 0.5;
 
 const flipDirection = (direction: Directions): Directions => {
   let flip = "";
@@ -74,127 +95,157 @@ const flipDirection = (direction: Directions): Directions => {
 };
 
 class Tile {
-  #neighbours: Neighbours;
+  neighbours: Neighbours;
   edges: Edges;
   #links: Links;
+  id: string;
 
   constructor(
-    {
-      n,
-      no,
-      so,
-      s,
-      sw,
-      nw,
-    }: {
-      n: Terrains;
-      no: Terrains;
-      so: Terrains;
-      s: Terrains;
-      sw: Terrains;
-      nw: Terrains;
-    },
+    edges: Edges,
+    { empty = false }: { empty?: boolean } = {},
     ...neighbours: Connection[]
   ) {
-    this.#neighbours = new DirectionManager(...neighbours);
+    this.id = getUniqueId("Tile");
+    this.neighbours = new DirectionManager();
     neighbours.forEach((neighbour) => {
-      if (neighbour.data == null) return;
-      neighbour.data.connect({
-        direction: flipDirection(neighbour.direction),
-        data: this,
-      });
+      this.connect(neighbour);
     });
     this.#links = {};
-    const edges: Edge[] = [n, no, so, s, sw, nw].map((t, dirIndex) => {
-      return { direction: Directions[dirIndex], data: t };
-    });
-    this.edges = new DirectionManager(...edges);
-    edges.forEach((edge) => {
-      const terrain = edge.data;
-      if (this.#links[terrain] == null) {
-        this.#links[terrain] = new Set();
+    this.edges = edges;
+    Object.entries(edges).forEach(
+      ([direction, data]: [Directions, Terrains]) => {
+        const terrain = data;
+        if (this.#links[terrain] == null) {
+          this.#links[terrain] = new Set();
+        }
+        this.#links[terrain]?.add(direction);
       }
-      this.#links[terrain]?.add(edge.direction);
+    );
+    if (empty) return;
+    this.#fillNullNeighbours();
+  }
+
+  connect(con: Connection, connectToNeighbour = true) {
+    this.neighbours.connect(con);
+    if (con.data == null || !connectToNeighbour) return;
+    con.data.connect(
+      {
+        direction: flipDirection(con.direction),
+        data: this,
+      },
+      false
+    );
+  }
+
+  isEmpty() {
+    return this.edges.array().length < Directions.length;
+  }
+
+  replace(tile: Tile, replaceNeighbours = true) {
+    this.neighbours.array().forEach((con) => {
+      const dir = con.direction;
+      const neighbour = tile.neighbours[dir];
+      if (neighbour != null && replaceNeighbours) {
+        neighbour.replace(con.data as Tile, false);
+      }
+      tile.connect(
+        {
+          direction: dir,
+          data: con.data,
+        },
+        true
+      );
     });
   }
 
-  connect(con: Connection) {
-    this.#neighbours[con.direction] = con.data;
+  remove() {
+    this.neighbours.array().forEach((con) => {
+      con.data?.connect(
+        {
+          direction: flipDirection(con.direction),
+          data: null,
+        },
+        false
+      );
+    });
+  }
+
+  #fillNullNeighbours() {
+    const connectedDirections = this.neighbours.array().map((c) => c.direction);
+    Directions.filter((dir) => !connectedDirections.includes(dir)).forEach(
+      (dir) => {
+        const empty = Tile.empty();
+        const directionIndex = Directions.indexOf(dir);
+        const neighbourDirections = [
+          directionIndex > 0 ? directionIndex - 1 : Directions.length - 1,
+          directionIndex < Directions.length - 1 ? directionIndex + 1 : 0,
+        ].map((i) => Directions[i]);
+        neighbourDirections.forEach((dir, i) => {
+          const neighbour = this.neighbours[dir];
+          if (neighbour == null) return;
+          neighbour.connect({
+            direction: neighbourDirections[(i + 1) % 2],
+            data: empty,
+          });
+        });
+        this.connect({ direction: dir, data: empty });
+      }
+    );
+  }
+
+  static empty(...neighbours: Connection[]) {
+    return new Tile(new DirectionManager(), { empty: true }, ...neighbours);
   }
 
   static random() {
-    const edges: Edge[] = [];
-    const usedTerrains = new Set();
-    const n = getRandomArrayEl(Terrains as unknown as Terrains[]);
-    let neighbourProbRatio = 3;
-    if (n === "tracks" || n === "water") {
-      neighbourProbRatio = 1;
-    }
-    edges.push({ direction: "N", data: n });
-    let terrains = Terrains.filter((v) => v != n);
-    if (!terrains.includes("grass")) terrains.push("grass");
-    const drawWithAdvantage = (advantaged: Terrains) => {
-      const totalCount =
-        terrains.length + (neighbourProbRatio > 0 ? neighbourProbRatio : 0);
-      let terrain = terrains[Math.floor(Math.random() * totalCount)];
-      if (terrain == undefined) {
-        neighbourProbRatio -= 1;
-        terrain = advantaged;
-      } else {
-        usedTerrains.add(terrain);
+    let possibleTerrains = Terrains.map((t) => t);
+    const selectedTerrains: Terrains[] = [];
+    const amounts = [];
+    let totalAmount = 0;
+    while (totalAmount < Directions.length) {
+      const terrain = getRandomArrayEl(possibleTerrains);
+      selectedTerrains.push(terrain);
+      possibleTerrains = possibleTerrains.filter((t) => t !== terrain);
+      let remaining = Directions.length - totalAmount;
+      let amount = Math.floor(Math.random() * veryDirtyFactorial(remaining));
+      for (let i = remaining; i > 0; i--) {
+        amount /= i;
+        if (amount > 1) continue;
+        amount = i;
+        break;
       }
-      return terrain;
-    };
-    ["NW", "NO"].forEach((direction: Directions) => {
-      const terrain = drawWithAdvantage(n);
-      edges.push({ direction, data: terrain });
-    });
-    if (n === "tracks" || n === "water") {
-      neighbourProbRatio += 1;
-    }
-    if (usedTerrains.size === 2) {
-      terrains = terrains.filter((v) => usedTerrains.has(v));
-      if (!terrains.includes("grass")) terrains.push("grass");
-    }
-    const s = drawWithAdvantage(n);
-    edges.push({ direction: "S", data: s });
-    if (n !== "tracks" && n !== "water" && s === n) {
-      neighbourProbRatio += 1;
-    }
-    if (usedTerrains.size === 2) {
-      terrains = terrains.filter((v) => usedTerrains.has(v));
-      if (!terrains.includes("grass")) terrains.push("grass");
-      neighbourProbRatio = 1;
-    }
-    ["SW", "SO"].forEach((direction: Directions) => {
-      edges.push({ direction, data: drawWithAdvantage(n) });
-    });
-    return new Tile(
-      edges.reduce((ob, edge) => {
-        (
-          ob as {
-            n: Terrains;
-            no: Terrains;
-            so: Terrains;
-            s: Terrains;
-            sw: Terrains;
-            nw: Terrains;
-          }
-        )[
-          edge.direction.toLowerCase() as "n" | "no" | "so" | "s" | "sw" | "nw"
-        ] = edge.data;
-        return ob;
-      }, {}) as {
-        n: Terrains;
-        no: Terrains;
-        so: Terrains;
-        s: Terrains;
-        sw: Terrains;
-        nw: Terrains;
+      totalAmount += amount;
+      amounts.push(amount);
+      remaining = Directions.length - totalAmount;
+      if (possibleTerrains.length === 3 && remaining > 0) {
+        if (!possibleTerrains.includes("grass")) {
+          amounts[possibleTerrains.indexOf("grass")] += remaining;
+        } else {
+          amounts.push(remaining);
+          selectedTerrains.push("grass");
+        }
       }
-    );
+    }
+    const edges: Edges = new DirectionManager();
+    const customDirections = Directions.map((d) => d);
+    if (amounts.every((a) => a === 2) && Math.random() < straightProbability) {
+      customDirections[Directions.indexOf("NO")] = "S";
+      customDirections[Directions.indexOf("S")] = "NO";
+    }
+    let amountIndex = 0;
+    for (let i = 0; i < customDirections.length; i++) {
+      if (
+        amounts
+          .filter((_, j) => j <= amountIndex)
+          .reduce((sum, a) => sum + a, 0) <
+        i + 1
+      )
+        amountIndex++;
+      edges[customDirections[i]] = selectedTerrains[amountIndex];
+    }
+    return new Tile(edges as Edges);
   }
 }
 
 export default Tile;
-export { Directions, Terrains };
+export { Directions, Terrains, Connection, flipDirection };

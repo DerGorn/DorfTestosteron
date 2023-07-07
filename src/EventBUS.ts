@@ -2,10 +2,19 @@
 //  * With some Typescript shenanigans the Events are type safe and provide
 //  * Autocomplete in VSCode
 
+import Position from "./Position.js";
+import Tile from "./Tile.js";
+
 /**
  * List of all possible Events. Basic stepping stone for the type safety
  */
-const eventTypes = ["loop", "togglePlay", "requestTogglePlay"] as const;
+const eventTypes = [
+  "loop",
+  "togglePlay",
+  "requestTogglePlay",
+  "drawnTile",
+  "startDrawing",
+] as const;
 /**
  * Converts the eventTypes JavaScript array into a TypeScript type.
  */
@@ -20,6 +29,8 @@ const registeredFunctions: { [key in Events]: ((e: any) => void)[] } = {
   loop: [],
   togglePlay: [],
   requestTogglePlay: [],
+  drawnTile: [],
+  startDrawing: [],
 };
 
 /**
@@ -30,6 +41,8 @@ type EventDefinitions = {
   loop: { delta: number };
   togglePlay: { play: boolean };
   requestTogglePlay: { play: boolean };
+  drawnTile: { center: Position; radius: number; tile: Tile };
+  startDrawing: {};
 };
 
 /**

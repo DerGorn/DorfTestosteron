@@ -1,6 +1,4 @@
-import Board from "./Board.js";
 import EventBUS from "./EventBUS.js";
-import { canvas } from "./Grafics.js";
 import Position from "./Position.js";
 import Tile from "./Tile.js";
 
@@ -14,15 +12,17 @@ const MouseListener = {
     EventBUS.registerEventListener("startDrawing", {}, () => {
       TileGraph = [];
     });
-    canvas.addEventListener("click", (event) => {
-      const pos = new Position(event.clientX, event.clientY);
-      const clicked = TileGraph.find((t) => pos.distance(t.center) <= t.radius);
-      console.log(clicked);
-      if (clicked === undefined) return;
-      const newTile = Tile.random();
-      const old = clicked.tile;
-      console.log(newTile.id, old);
-      Board.add(newTile, old);
+    EventBUS.registerEventListener("click", {}, (event) => {
+      switch (event.target) {
+        case "BoardCanvas":
+          const clicked = TileGraph.find(
+            (t) => event.pos.distance(t.center) <= t.radius
+          );
+          // console.log(TileGraph, clicked, event.pos);
+          if (clicked === undefined || !clicked.tile.isEmpty()) return;
+          EventBUS.fireEvent("clickedEmptyTile", { tile: clicked.tile });
+          break;
+      }
     });
   },
 };

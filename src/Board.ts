@@ -1,7 +1,22 @@
+import EventBUS from "./EventBUS.js";
+import Position from "./Position.js";
 import Tile from "./Tile.js";
 
 let board: Tile | null = null;
+let boardOrigin: Position | null = null;
 const Board = {
+  new: () => {
+    board = null;
+    EventBUS.registerEventListener("clickedEmptyTile", {}, (event) => {
+      const newTile = Tile.random();
+      const old = event.tile;
+      Board.add(newTile, old);
+    });
+    EventBUS.registerEventListener("endDrawing", {}, (event) => {
+      board = event.tile;
+      boardOrigin = event.center;
+    });
+  },
   add: (tile: Tile, old: Tile | null = null) => {
     if (board == null) {
       board = tile;
@@ -10,6 +25,7 @@ const Board = {
     old.replace(tile);
   },
   board: () => board,
+  origin: () => boardOrigin,
 };
 
 export default Board;

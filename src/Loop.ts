@@ -1,6 +1,6 @@
 import EventBUS from "./EventBUS.js";
 
-const FPSTARGET = 30;
+const FPSTARGET = 40;
 
 let end = true;
 let lastRender = 0;

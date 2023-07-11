@@ -14,6 +14,9 @@ const eventTypes = [
   "requestTogglePlay",
   "drawnTile",
   "startDrawing",
+  "clickedEmptyTile",
+  "click",
+  "endDrawing",
 ] as const;
 /**
  * Converts the eventTypes JavaScript array into a TypeScript type.
@@ -31,6 +34,9 @@ const registeredFunctions: { [key in Events]: ((e: any) => void)[] } = {
   requestTogglePlay: [],
   drawnTile: [],
   startDrawing: [],
+  clickedEmptyTile: [],
+  click: [],
+  endDrawing: [],
 };
 
 /**
@@ -43,6 +49,9 @@ type EventDefinitions = {
   requestTogglePlay: { play: boolean };
   drawnTile: { center: Position; radius: number; tile: Tile };
   startDrawing: {};
+  clickedEmptyTile: { tile: Tile };
+  click: { pos: Position; target: "BoardCanvas" };
+  endDrawing: { tile: Tile; center: Position };
 };
 
 /**

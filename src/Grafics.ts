@@ -5,6 +5,7 @@ import EventBUS from "./EventBUS.js";
 import Position from "./Position.js";
 import Tile, { Directions, Terrains } from "./Tile.js";
 
+const RADIUS = 150;
 let radialFraction = 1;
 
 const canvas = createElement("canvas", {
@@ -66,23 +67,25 @@ const drawTile = (tile: Tile, center: Position, radius: number) => {
     c.closePath();
     c.stroke();
   });
-  c.strokeText(tile.id, ...center.array(), 100);
+  // c.strokeText(tile.id, ...center.array(), 100);
   EventBUS.fireEvent("drawnTile", { center, radius, tile });
   return true;
 };
 
 let centrist: { tile: Tile; center: Position } | null = null;
+let wasSomethingDrawn = false;
 const drawRecursion = (
   board: Tile | null,
   cameraCenter: Position,
   direction: Directions | null,
   origin: Position,
-  radius = 150,
+  radius: number,
   allreadyDrawn: Set<string> = new Set()
 ) => {
   if (board == null) return true;
   if (allreadyDrawn.has(board.id)) return true;
   const tileInCamera = drawTile(board, origin, radius);
+  if (tileInCamera) wasSomethingDrawn = true;
   // console.log(board.id, tileInCamera);
   allreadyDrawn.add(board.id);
   if (centrist == null && origin.distance(cameraCenter) <= radius) {
@@ -90,6 +93,7 @@ const drawRecursion = (
   }
   board.neighbours.array().forEach((con) => {
     if (
+      wasSomethingDrawn &&
       !tileInCamera &&
       direction &&
       direction.split("").some((d) => con.direction.includes(d))
@@ -123,12 +127,13 @@ const drawBoard = (board: Tile | null) => {
     board,
     Camera.center(),
     null,
-    origin != null ? origin : new Position(canvas.width / 2, canvas.height / 2)
+    origin != null ? origin : new Position(canvas.width / 2, canvas.height / 2),
+    RADIUS * Camera.zoom()
   );
-  //TODO: Try optimise Drawing to mostly include visible
   // console.log(centrist);
   if (centrist != null) EventBUS.fireEvent("endDrawing", centrist);
   centrist = null;
+  wasSomethingDrawn = false;
 };
 
 const Grafics = {

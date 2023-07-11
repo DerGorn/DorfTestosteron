@@ -7,11 +7,22 @@ const MAXSPEED = 1.2 * ACCELERATION; //px/s
 const DECELERATIONFACTOR = 2;
 let speed = new Position(0, 0);
 
+const MINZOOM = 0.3;
+const MAXZOOM = 2;
+const ZOOMCHANGE = 0.01;
+let zoom = 1;
+
 let width = window.innerWidth;
 let height = window.innerHeight;
 
 const Camera = {
   start: () => {
+    window.addEventListener("wheel", (event) => {
+      const up = event.deltaY < 0;
+      zoom += ZOOMCHANGE * (up ? 1 : -1);
+      if (zoom < MINZOOM) zoom = MINZOOM;
+      if (zoom > MAXZOOM) zoom = MAXZOOM;
+    });
     EventBUS.registerEventListener("loop", {}, ({ delta }) => {
       const speedChange = 12;
       speed = new Position(0, 0);
@@ -69,6 +80,7 @@ const Camera = {
     });
   },
   origion: new Position(0, 0),
+  zoom: () => zoom,
   center: () => {
     return Camera.origion.scale(-1).add(new Position(width / 2, height / 2));
   },

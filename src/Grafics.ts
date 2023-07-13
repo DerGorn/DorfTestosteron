@@ -15,6 +15,9 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 const c = canvas.getContext("2d");
 if (c == null) throw Error("Fuck");
+c.font = "30px Arial";
+c.strokeStyle = "black";
+c.lineWidth = 5;
 
 const directionToAngleMap: { [key in Directions]: number } = {
   N: 0,
@@ -34,26 +37,21 @@ const terrainColorMap: { [key in Terrains]: string } = {
   woods: "darkgreen",
 };
 
-const drawTile = (tile: Tile, center: Position, radius: number) => {
-  const inflatedRadius = radius * radialFraction;
-  if (!Camera.tileInCamera(center, radius)) return false;
-  center = center.add(Camera.origion);
-  c.font = "30px Arial";
-  c.strokeStyle = "black";
-  c.lineWidth = 5;
+const simpleDrawTile = (
+  c: CanvasRenderingContext2D,
+  tile: Tile,
+  center: Position,
+  radius: number
+) => {
   tile.edges.array().forEach((edge) => {
     c.fillStyle = terrainColorMap[edge.data];
     const angle = directionToAngleMap[edge.direction];
     const off = Math.PI / 6;
     const plus = center.add(
-      new Position(Math.cos(angle + off), Math.sin(angle + off)).scale(
-        inflatedRadius
-      )
+      new Position(Math.cos(angle + off), Math.sin(angle + off)).scale(radius)
     );
     const minus = center.add(
-      new Position(Math.cos(angle - off), Math.sin(angle - off)).scale(
-        inflatedRadius
-      )
+      new Position(Math.cos(angle - off), Math.sin(angle - off)).scale(radius)
     );
     c.beginPath();
     c.moveTo(center.x, center.y);
@@ -68,6 +66,13 @@ const drawTile = (tile: Tile, center: Position, radius: number) => {
     c.stroke();
   });
   // c.strokeText(tile.id, ...center.array(), 100);
+};
+
+const drawTile = (tile: Tile, center: Position, radius: number) => {
+  const inflatedRadius = radius * radialFraction;
+  if (!Camera.tileInCamera(center, radius)) return false;
+  center = center.add(Camera.origion);
+  simpleDrawTile(c, tile, center, inflatedRadius);
   EventBUS.fireEvent("drawnTile", { center, radius, tile });
   return true;
 };
@@ -151,4 +156,4 @@ const Grafics = {
 };
 
 export default Grafics;
-export { canvas };
+export { RADIUS, simpleDrawTile };

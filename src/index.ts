@@ -4,6 +4,7 @@ import Grafics from "./Grafics.js";
 import KeyboardListener from "./KeyboardInput.js";
 import { Loop } from "./Loop.js";
 import MouseListener from "./MouseInput.js";
+import Preview from "./Preview.js";
 import Tile from "./Tile.js";
 
 Board.new();
@@ -14,6 +15,9 @@ Board.add(t2, tile.neighbours["S"]);
 Board.add(Tile.random(), t2.neighbours["NW"] as Tile);
 Camera.start();
 Grafics.start();
+Preview.start();
 MouseListener.start();
 KeyboardListener.start();
 Loop.start();
+
+//TODO: PREVIEW TILE

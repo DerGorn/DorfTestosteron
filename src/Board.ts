@@ -4,14 +4,23 @@ import Tile from "./Tile.js";
 
 let board: Tile | null = null;
 let boardOrigin: Position | null = null;
+let nextTile: Tile | null = null;
 const Board = {
   new: () => {
     board = null;
-    EventBUS.registerEventListener("clickedEmptyTile", {}, (event) => {
-      const newTile = Tile.random();
-      const old = event.tile;
-      Board.add(newTile, old);
+    EventBUS.registerEventListener("drawnPreview", {}, (event) => {
+      nextTile = event.tile;
     });
+    EventBUS.registerEventListener(
+      "clickedEmptyTile",
+      { index: 0 },
+      (event) => {
+        if (nextTile == null)
+          throw Error("SOmehow the board tries to append a null TIle");
+        const old = event.tile;
+        Board.add(nextTile, old);
+      }
+    );
     EventBUS.registerEventListener("endDrawing", {}, (event) => {
       board = event.tile;
       boardOrigin = event.center;

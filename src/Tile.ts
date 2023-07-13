@@ -110,9 +110,15 @@ class Tile {
     neighbours.forEach((neighbour) => {
       this.connect(neighbour);
     });
-    this.#links = {};
     this.edges = edges;
-    Object.entries(edges).forEach(
+    this.#calculateLinks();
+    if (empty) return;
+    this.#fillNullNeighbours();
+  }
+
+  #calculateLinks() {
+    this.#links = {};
+    Object.entries(this.edges).forEach(
       ([direction, data]: [Directions, Terrains]) => {
         const terrain = data;
         if (this.#links[terrain] == null) {
@@ -121,8 +127,6 @@ class Tile {
         this.#links[terrain]?.add(direction);
       }
     );
-    if (empty) return;
-    this.#fillNullNeighbours();
   }
 
   connect(con: Connection, connectToNeighbour = true) {
@@ -191,6 +195,11 @@ class Tile {
         this.connect({ direction: dir, data: empty });
       }
     );
+  }
+
+  rotate(clockwise = true) {
+    this.edges.rotate(clockwise);
+    this.#calculateLinks();
   }
 
   static empty(...neighbours: Connection[]) {

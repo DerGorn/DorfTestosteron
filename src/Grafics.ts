@@ -16,7 +16,6 @@ canvas.height = window.innerHeight;
 const c = canvas.getContext("2d");
 if (c == null) throw Error("Fuck");
 c.font = "30px Arial";
-c.strokeStyle = "black";
 c.lineWidth = 5;
 
 const directionToAngleMap: { [key in Directions]: number } = {
@@ -37,6 +36,52 @@ const terrainColorMap: { [key in Terrains]: string } = {
   woods: "darkgreen",
 };
 
+let validEmptyTiles: string[] = [];
+const drawEmptyTile = (
+  c: CanvasRenderingContext2D,
+  tile: Tile,
+  center: Position,
+  radius: number
+) => {
+  if (validEmptyTiles.length === 0 || validEmptyTiles.includes(tile.id)) {
+    tile.neighbours.array().forEach((edge) => {
+      c.strokeStyle = "rgba(0,0,0,0.1)";
+      const angle = directionToAngleMap[edge.direction];
+      const off = Math.PI / 6;
+      const plus = center.add(
+        new Position(Math.cos(angle + off), Math.sin(angle + off)).scale(radius)
+      );
+      const minus = center.add(
+        new Position(Math.cos(angle - off), Math.sin(angle - off)).scale(radius)
+      );
+      c.beginPath();
+      c.moveTo(...plus.array());
+      c.lineTo(...minus.array());
+      c.closePath();
+      c.stroke();
+    });
+  } else {
+    tile.neighbours.array().forEach((edge) => {
+      c.fillStyle = "rgba(255,0,0,0.1)";
+      const angle = directionToAngleMap[edge.direction];
+      const off = Math.PI / 6;
+      const plus = center.add(
+        new Position(Math.cos(angle + off), Math.sin(angle + off)).scale(radius)
+      );
+      const minus = center.add(
+        new Position(Math.cos(angle - off), Math.sin(angle - off)).scale(radius)
+      );
+      c.beginPath();
+      c.moveTo(center.x, center.y);
+      c.lineTo(...plus.array());
+      c.lineTo(...minus.array());
+      c.closePath();
+      c.fill();
+    });
+  }
+  c.strokeText(tile.id, ...center.array(), 100);
+};
+
 const simpleDrawTile = (
   c: CanvasRenderingContext2D,
   tile: Tile,
@@ -44,6 +89,7 @@ const simpleDrawTile = (
   radius: number
 ) => {
   tile.edges.array().forEach((edge) => {
+    c.strokeStyle = "black";
     c.fillStyle = terrainColorMap[edge.data];
     const angle = directionToAngleMap[edge.direction];
     const off = Math.PI / 6;
@@ -65,14 +111,15 @@ const simpleDrawTile = (
     c.closePath();
     c.stroke();
   });
-  // c.strokeText(tile.id, ...center.array(), 100);
+  c.strokeText(tile.id, ...center.array(), 100);
 };
 
 const drawTile = (tile: Tile, center: Position, radius: number) => {
   const inflatedRadius = radius * radialFraction;
   if (!Camera.tileInCamera(center, radius)) return false;
   center = center.add(Camera.origion);
-  simpleDrawTile(c, tile, center, inflatedRadius);
+  if (tile.isEmpty()) drawEmptyTile(c, tile, center, inflatedRadius);
+  else simpleDrawTile(c, tile, center, inflatedRadius);
   EventBUS.fireEvent("drawnTile", { center, radius, tile });
   return true;
 };
@@ -146,6 +193,13 @@ const Grafics = {
     body.append(canvas);
     radialFraction = 1 / Math.cos(Math.PI / Directions.length);
     EventBUS.registerEventListener("loop", {}, () => {
+      drawBoard(Board.board());
+    });
+    EventBUS.registerEventListener("validatedEmptyTiles", {}, (event) => {
+      validEmptyTiles = event.validEmptyTiles;
+    });
+    EventBUS.registerEventListener("clickedEmptyTile", { index: 1 }, () => {
+      validEmptyTiles = [];
       drawBoard(Board.board());
     });
     canvas.addEventListener("click", (event) => {

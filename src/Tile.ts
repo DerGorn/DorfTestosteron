@@ -25,6 +25,7 @@ const relativeTerrainFrequency: { [keys in Terrains]: number } = {
 const terrainsWithSmallerAreas: Terrains[] = ["tracks", "water"];
 const smallerAreaPosibility = 0.6;
 const smallerAreaResidual = 0.7;
+const pureTerrains: Terrains[] = ["tracks", "water"];
 type Edge = DirectionData<Terrains>;
 type Link = Set<Directions>;
 type Links = { [key in Terrains]?: Link };
@@ -109,6 +110,7 @@ class Tile {
   neighbours: Neighbours;
   edges: Edges;
   #links: Links;
+  #outerLinks: Links;
   id: string;
 
   constructor(
@@ -123,21 +125,32 @@ class Tile {
     });
     this.edges = edges;
     this.#calculateLinks();
+    this.#calculateOuterLinks();
     if (empty) return;
     this.#fillNullNeighbours();
   }
 
   #calculateLinks() {
     this.#links = {};
-    Object.entries(this.edges).forEach(
-      ([direction, data]: [Directions, Terrains]) => {
-        const terrain = data;
-        if (this.#links[terrain] == null) {
-          this.#links[terrain] = new Set();
-        }
-        this.#links[terrain]?.add(direction);
+    this.edges.array().forEach(({ direction, data }) => {
+      const terrain = data;
+      if (this.#links[terrain] == null) {
+        this.#links[terrain] = new Set();
       }
-    );
+      this.#links[terrain]?.add(direction);
+    });
+  }
+
+  #calculateOuterLinks() {
+    this.#outerLinks = {};
+    this.neighbours.array().forEach(({ direction, data }) => {
+      const terrain = data?.edges[flipDirection(direction)];
+      if (terrain == null) return;
+      if (this.#outerLinks[terrain] == null) {
+        this.#outerLinks[terrain] = new Set();
+      }
+      this.#outerLinks[terrain]?.add(direction);
+    });
   }
 
   connect(con: Connection, connectToNeighbour = true) {
@@ -150,10 +163,52 @@ class Tile {
       },
       false
     );
+    this.#calculateOuterLinks();
   }
 
   isEmpty() {
     return this.edges.array().length < Directions.length;
+  }
+
+  checkCompatibility(tile: Tile) {
+    let fits = true;
+    console.log("\n\n\n\nchekingCompatibility between", this.id, tile.id);
+    console.log(this, tile);
+    pureTerrains.forEach((pureTerrain) => {
+      if (!fits) return;
+      console.log("checking for", pureTerrain);
+      const directions = tile.#links[pureTerrain];
+      if (directions != null) {
+        console.log(
+          "Checking the following directions from the new tile",
+          directions
+        );
+        directions.forEach((dir) => {
+          const neighbour = this.neighbours[dir as Directions];
+          console.log("FOund ", neighbour, "in ", dir);
+          if (neighbour == null || neighbour.isEmpty()) return;
+          console.log(
+            neighbour.id,
+            dir,
+            ": ",
+            neighbour.edges[dir as Directions]
+          );
+          if (neighbour.edges[flipDirection(dir as Directions)] !== pureTerrain)
+            fits = false;
+        });
+      }
+      const outerDirections = this.#outerLinks[pureTerrain];
+      if (outerDirections == null) return;
+      console.log(
+        "Checking the following directions from the old tile",
+        outerDirections
+      );
+      outerDirections.forEach((dir) => {
+        console.log(dir, ": ", tile.edges[dir as Directions]);
+        if (tile.edges[dir] !== pureTerrain) fits = false;
+      });
+    });
+    return fits;
   }
 
   replace(tile: Tile, replaceNeighbours = true) {

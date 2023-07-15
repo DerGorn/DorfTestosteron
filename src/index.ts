@@ -8,11 +8,12 @@ import Preview from "./Preview.js";
 import Tile from "./Tile.js";
 
 Board.new();
-const tile = Tile.random();
-Board.add(tile);
-const t2 = Tile.random();
-Board.add(t2, tile.neighbours["S"]);
-Board.add(Tile.random(), t2.neighbours["NW"] as Tile);
+Board.add(Tile.random());
+// const tile = Tile.random();
+// Board.add(tile);
+// const t2 = Tile.random();
+// Board.add(t2, tile.neighbours["S"]);
+// Board.add(Tile.random(), t2.neighbours["NW"] as Tile);
 Camera.start();
 Grafics.start();
 Preview.start();

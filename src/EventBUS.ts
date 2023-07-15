@@ -18,6 +18,7 @@ const eventTypes = [
   "click",
   "endDrawing",
   "drawnPreview",
+  "validatedEmptyTiles",
 ] as const;
 /**
  * Converts the eventTypes JavaScript array into a TypeScript type.
@@ -39,6 +40,7 @@ const registeredFunctions: { [key in Events]: ((e: any) => void)[] } = {
   click: [],
   endDrawing: [],
   drawnPreview: [],
+  validatedEmptyTiles: [],
 };
 
 /**
@@ -55,6 +57,7 @@ type EventDefinitions = {
   click: { pos: Position; target: "BoardCanvas" };
   endDrawing: { tile: Tile; center: Position };
   drawnPreview: { tile: Tile };
+  validatedEmptyTiles: { validEmptyTiles: string[] };
 };
 
 /**

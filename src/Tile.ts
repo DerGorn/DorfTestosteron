@@ -14,6 +14,17 @@ const Terrains = [
   "water",
 ] as const;
 type Terrains = (typeof Terrains)[number];
+const relativeTerrainFrequency: { [keys in Terrains]: number } = {
+  tracks: 2,
+  water: 2,
+  field: 5,
+  grass: 4,
+  village: 5,
+  woods: 5,
+};
+const terrainsWithSmallerAreas: Terrains[] = ["tracks", "water"];
+const smallerAreaPosibility = 0.6;
+const smallerAreaResidual = 0.7;
 type Edge = DirectionData<Terrains>;
 type Link = Set<Directions>;
 type Links = { [key in Terrains]?: Link };
@@ -207,7 +218,13 @@ class Tile {
   }
 
   static random() {
-    let possibleTerrains = Terrains.map((t) => t);
+    let possibleTerrains = Terrains.reduce(
+      (terrains: Terrains[], t: Terrains) => {
+        terrains.push(...Array(relativeTerrainFrequency[t]).fill(t));
+        return terrains;
+      },
+      []
+    );
     const selectedTerrains: Terrains[] = [];
     const amounts = [];
     let totalAmount = 0;
@@ -217,6 +234,12 @@ class Tile {
       possibleTerrains = possibleTerrains.filter((t) => t !== terrain);
       let remaining = Directions.length - totalAmount;
       let amount = Math.floor(Math.random() * veryDirtyFactorial(remaining));
+      if (
+        terrainsWithSmallerAreas.includes(terrain) &&
+        Math.random() < smallerAreaPosibility
+      ) {
+        amount *= smallerAreaResidual;
+      }
       for (let i = remaining; i > 0; i--) {
         amount /= i;
         if (amount > 1) continue;
@@ -228,11 +251,12 @@ class Tile {
       remaining = Directions.length - totalAmount;
       if (possibleTerrains.length === 3 && remaining > 0) {
         if (!possibleTerrains.includes("grass")) {
-          amounts[possibleTerrains.indexOf("grass")] += remaining;
+          amounts[selectedTerrains.indexOf("grass")] += remaining;
         } else {
           amounts.push(remaining);
           selectedTerrains.push("grass");
         }
+        totalAmount += remaining;
       }
     }
     const edges: Edges = new DirectionManager();

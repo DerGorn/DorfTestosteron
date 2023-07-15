@@ -17,9 +17,11 @@ const getRandomArrayEl = <K>(array: K[]): K => {
 };
 
 const veryDirtyFactorial = (n: number): number => {
-  return Array(n)
-    .fill(0)
-    .reduce((fac, _, i) => fac * (i + 1), 1);
+  return n > 0
+    ? Array(n)
+        .fill(0)
+        .reduce((fac, _, i) => fac * (i + 1), 1)
+    : 1;
 };
 
 /**

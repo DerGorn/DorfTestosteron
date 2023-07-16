@@ -19,6 +19,7 @@ const MouseListener = {
         if (tile.checkCompatibility(event.tile)) valids.push(tile.id);
         return valids;
       }, []);
+      validEmptyTiles.push("0")
       EventBUS.fireEvent("validatedEmptyTiles", { validEmptyTiles });
     });
     EventBUS.registerEventListener("startDrawing", {}, () => {

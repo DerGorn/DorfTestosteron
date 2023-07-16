@@ -79,7 +79,7 @@ const drawEmptyTile = (
       c.fill();
     });
   }
-  c.strokeText(tile.id, ...center.array(), 100);
+  // c.strokeText(tile.id, ...center.array(), 100);
 };
 
 const simpleDrawTile = (
@@ -111,7 +111,7 @@ const simpleDrawTile = (
     c.closePath();
     c.stroke();
   });
-  c.strokeText(tile.id, ...center.array(), 100);
+  // c.strokeText(tile.id, ...center.array(), 100);
 };
 
 const drawTile = (tile: Tile, center: Position, radius: number) => {

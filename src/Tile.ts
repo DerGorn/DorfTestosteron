@@ -144,7 +144,8 @@ class Tile {
   #calculateOuterLinks() {
     this.#outerLinks = {};
     this.neighbours.array().forEach(({ direction, data }) => {
-      const terrain = data?.edges[flipDirection(direction)];
+      if (data == null) return;
+      const terrain = data.edges[flipDirection(direction)];
       if (terrain == null) return;
       if (this.#outerLinks[terrain] == null) {
         this.#outerLinks[terrain] = new Set();
@@ -155,6 +156,7 @@ class Tile {
 
   connect(con: Connection, connectToNeighbour = true) {
     this.neighbours.connect(con);
+    this.#calculateOuterLinks();
     if (con.data == null || !connectToNeighbour) return;
     con.data.connect(
       {
@@ -163,7 +165,6 @@ class Tile {
       },
       false
     );
-    this.#calculateOuterLinks();
   }
 
   isEmpty() {
@@ -172,39 +173,39 @@ class Tile {
 
   checkCompatibility(tile: Tile) {
     let fits = true;
-    console.log("\n\n\n\nchekingCompatibility between", this.id, tile.id);
-    console.log(this, tile);
+    // console.log("\n\n\n\nchekingCompatibility between", this.id, tile.id);
+    // console.log(this, tile);
     pureTerrains.forEach((pureTerrain) => {
       if (!fits) return;
-      console.log("checking for", pureTerrain);
+      // console.log("checking for", pureTerrain);
       const directions = tile.#links[pureTerrain];
-      if (directions != null) {
-        console.log(
-          "Checking the following directions from the new tile",
-          directions
-        );
+      if (directions != undefined) {
+        // console.log(
+        //   "Checking the following directions from the new tile",
+        //   directions
+        // );
         directions.forEach((dir) => {
           const neighbour = this.neighbours[dir as Directions];
-          console.log("FOund ", neighbour, "in ", dir);
+          // console.log("FOund ", neighbour, "in ", dir);
           if (neighbour == null || neighbour.isEmpty()) return;
-          console.log(
-            neighbour.id,
-            dir,
-            ": ",
-            neighbour.edges[dir as Directions]
-          );
+          // console.log(
+          //   neighbour.id,
+          //   dir,
+          //   ": ",
+          //   neighbour.edges[flipDirection(dir as Directions)]
+          // );
           if (neighbour.edges[flipDirection(dir as Directions)] !== pureTerrain)
             fits = false;
         });
       }
       const outerDirections = this.#outerLinks[pureTerrain];
-      if (outerDirections == null) return;
-      console.log(
-        "Checking the following directions from the old tile",
-        outerDirections
-      );
+      if (outerDirections == undefined) return;
+      // console.log(
+      //   "Checking the old tile",
+      //   outerDirections
+      // );
       outerDirections.forEach((dir) => {
-        console.log(dir, ": ", tile.edges[dir as Directions]);
+        // console.log(dir, ": ", tile.edges[dir as Directions]);
         if (tile.edges[dir] !== pureTerrain) fits = false;
       });
     });

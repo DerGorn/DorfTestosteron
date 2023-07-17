@@ -86,6 +86,7 @@ const fireEvent = async <K extends Events>(
   eventType: K,
   event: EventDefinitions[K]
 ) => {
+  console.log(eventType, event)
   registeredFunctions[eventType].forEach((l) => l(event));
 };
 

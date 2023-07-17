@@ -14,11 +14,11 @@ Board.add(Tile.random());
 // const t2 = Tile.random();
 // Board.add(t2, tile.neighbours["S"]);
 // Board.add(Tile.random(), t2.neighbours["NW"] as Tile);
+MouseListener.start();
 Camera.start();
 Grafics.start();
 Preview.start();
-MouseListener.start();
 KeyboardListener.start();
 Loop.start();
 
-//TODO: PREVIEW TILE
+//TODO: ValidateEmptyTiles on startup

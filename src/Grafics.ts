@@ -43,7 +43,7 @@ const drawEmptyTile = (
   center: Position,
   radius: number
 ) => {
-  if (validEmptyTiles.length === 0 || validEmptyTiles.includes(tile.id)) {
+  if (validEmptyTiles.includes(tile.id)) {
     tile.neighbours.array().forEach((edge) => {
       c.strokeStyle = "rgba(0,0,0,0.1)";
       const angle = directionToAngleMap[edge.direction];
@@ -192,6 +192,7 @@ const Grafics = {
   start: () => {
     body.append(canvas);
     radialFraction = 1 / Math.cos(Math.PI / Directions.length);
+    drawBoard(Board.board());
     EventBUS.registerEventListener("loop", {}, () => {
       drawBoard(Board.board());
     });
